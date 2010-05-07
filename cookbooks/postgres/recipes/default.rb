@@ -4,7 +4,7 @@ require 'pp'
 # Recipe:: default
 #
 #
-if node[:instance_role] == 'db_master'
+if node[:instance_role] == 'solo' 
   postgres_root    = '/var/lib/postgresql'
   postgres_version = '8.3'
 
