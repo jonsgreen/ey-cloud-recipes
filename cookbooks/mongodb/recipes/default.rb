@@ -2,102 +2,36 @@
 # Cookbook Name:: mongodb
 # Recipe:: default
 #
+# Save credentials on app_master
+if ['app_master','app','solo'].include? @node[:instance_role]
+  Chef::Log.info "creating app mongo.yml code"
+  require_recipe "mongodb::app"
+end
 
-if node[:instance_role] == 'util' && node[:name].match(/^mongodb_/)
+case node[:kernel][:machine]
+when "i686"
+  # Do nothing, you should never run MongoDB in a i686/i386 environment it will damage your data.
+  # Chef::Log.info "MongoDB cannot be hold data in 32bit systems"
 
-  # If using masterslave to replicate from a remote master, this
-  # requires a tunnel to be created and running on port 27027
-  remote_master     = 'localhost:27027'
-  local_master      = 'localhost'
+else
   
-  node[:utility_instances].each do |util_instance|
-    if util_instance[:name].match(/(master|masterslave)$/)
-      local_master = util_instance[:hostname]
+  if (@node[:instance_role] == 'util' && @node[:name].match(/mongodb/)) || (@node[:instance_role] == "solo" &&  @node[:mongo_utility_instances].length == 0)
+    # Chef::Log.info "installing in util with mongo"
+    
+    require_recipe "mongodb::install"
+    require_recipe "mongodb::configure"
+    require_recipe "mongodb::start"
+    
+    if @node[:mongo_replset]
+      require_recipe "mongodb::replset"
     end
   end
   
-  mongodb_options = "--master" if node[:name].match(/master$/)
-  mongodb_options = "--master --slave --source=#{remote_master}" if node[:name].match(/masterslave$/)
-  mongodb_options = "--slave --source=#{local_master}" if node[:name].match(/slave(\d*)$/)  
-  
-  package "dev-db/mongodb-bin" do
-    action :install
-  end
-  
-  directory '/data/mongodb/data' do
-    owner 'mongodb'
-    group 'mongodb'
-    mode  '0755'
-    action :create
-    recursive true
-  end
-
-  directory '/data/mongodb/log' do
-    owner 'mongodb'
-    group 'mongodb'
-    mode '0755'
-    action :create
-    recursive true
-  end
-  
-  directory '/var/run/mongodb' do
-    owner 'mongodb'
-    group 'mongodb'
-    mode '0755'
-    action :create
-    recursive true
-  end  
-  
-  remote_file "/etc/logrotate.d/mongodb" do
-    owner "root"
-    group "root"
-    mode 0755
-    source "mongodb.logrotate"
-    backup false
-    action :create
-  end
-  
-  template "/etc/conf.d/mongodb" do
-    source "mongodb.conf.erb"
-    owner "root"
-    group "root"
-    mode 0755
-    variables({
-      :mongodb_options => mongodb_options
-    })
-  end  
-  
-  execute "enable-mongodb" do
-    command "rc-update add mongodb default"
-    action :run
-  end  
-  
-  execute "start-mongodb" do
-    command "/etc/init.d/mongodb restart"
-    action :run
-    not_if "/etc/init.d/mongodb status"
-  end  
-  
-  node[:applications].each do |app_name,data|
-    user = node[:users].first
-    db_name = "#{app_name}_#{node[:environment][:framework_env]}"
-    
-    execute "create-mongodb-root-user" do
-      command "/usr/bin/mongo admin --eval 'db.addUser(\"root\",\"#{user[:password]}\")'"
-      action :run
-      not_if "/usr/bin/mongo admin --eval 'db.auth(\"root\",\"#{user[:password]}\")' | grep -q ^1$"
-    end    
-    
-    execute "create-mongodb-replication-user" do
-      command "/usr/bin/mongo admin --eval 'db.auth(\"root\",\"#{user[:password]}\"); db.getMongo().getDB(\"local\").addUser(\"repl\",\"#{user[:password]}\")'"      
-      action :run
-      not_if "/usr/bin/mongo local --eval 'db.auth(\"repl\",\"#{user[:password]}\")' | grep -q ^1$"      
-    end
-
-    execute "create-mongodb-application-users" do
-      command "/usr/bin/mongo admin --eval 'db.auth(\"root\",\"#{user[:password]}\"); db.getMongo().getDB(\"#{db_name}\").addUser(\"#{user[:username]}\",\"#{user[:password]}\")'"      
-      action :run
-      not_if "/usr/bin/mongo #{db_name} --eval 'db.auth(\"#{user[:username]}\",\"#{user[:password]}\")' | grep -q ^1$"
-    end    
+  # Setup an arbiter on the db_master|solo as replica sets need another vote to properly failover.  If you have a Replica set > 3 nodes we don't set this up, you can tune this obviously.
+  if (['db_master','solo'].include?(@node[:instance_role]) &&  @node[:mongo_utility_instances].length == 2)
+    Chef::Log.info "Setting up Mongo in db_master or solo"
+    require_recipe "mongodb::install"
+    require_recipe "mongodb::configure"
+    require_recipe "mongodb::start"
   end
 end
