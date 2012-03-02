@@ -1,0 +1,5 @@
+check process workling_<%= @app_name %>
+  with pidfile /var/run/workling/<%= @app_name %>_workling.pid
+  start program = "/engineyard/bin/workling <%= @app_name %> start" as uid <%= @user %> and gid <%= @user %> with timeout 90 seconds
+  stop program = "/engineyard/bin/workling <%= @app_name %> stop" as uid <%= @user %> and gid <%= @user %> with timeout 90 seconds
+  group workling_<%= @app_name %>

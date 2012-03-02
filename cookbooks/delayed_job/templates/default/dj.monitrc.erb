@@ -5,4 +5,4 @@
 	  stop program = "/engineyard/bin/dj <%= @app_name %> stop <%= @framework_env %> <%= @worker_name %>" with timeout 60 seconds
 	  if totalmem is greater than 300 MB then restart # eating up memory?
 	  group dj_<%= @app_name %>
-<% end %>	
+<% end %>

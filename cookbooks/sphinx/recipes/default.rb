@@ -4,7 +4,7 @@
 #
 
 # Set your application name here
-appname = "myapp"
+appname = "assessingparenting1"
 
 # Uncomment the flavor of sphinx you want to use
 flavor = "thinking_sphinx"
@@ -20,14 +20,12 @@ flavor = "thinking_sphinx"
 utility_name = nil
 # utility_name = "sphinx"
 
-# If you want to have scheduled reindexes in cron, enter the minute
-# interval here. This is passed directly to cron via /, so you should
-# only use numbers between 1 - 59.
-#
+# If you want to have scheduled reindexes in cron, enter the hour
+# interval here. This is passed directly to cron via /#
 # If you don't want scheduled reindexes, just leave this set to nil.
-# Setting it equal to 10 would run the cron job every 10 minutes.
+# Setting it equal to 1 would run the cron job every hour.
 
-cron_interval = nil #If this is not set your data will NOT be indexed
+cron_interval = 1 #If this is not set your data will NOT be indexed
 
 if utility_name
   sphinx_host = node[:utility_instances].find {|u| u[:name] == utility_name }[:hostname]
@@ -119,10 +117,10 @@ if utility_name
         })
       end
 
-      gem_package "bundler" do 
-        source "http://rubygems.org" 
-        action :install 
-        version "1.0.21" 
+      gem_package "bundler" do
+        source "http://rubygems.org"
+        action :install
+        version "1.0.21"
       end
 
       execute "sphinx config" do
@@ -154,12 +152,12 @@ if utility_name
       if cron_interval
         cron "sphinx index" do
           action  :create
-          minute  "*/#{cron_interval}"
-          hour    '*'
+          minute  "0"
+          hour    "*/#{cron_interval}"
           day     '*'
           month   '*'
           weekday '*'
-          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} bundle exec rake #{flavor}:index"
+          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} bundle exec rake #{flavor}:index --trace >> /var/log/engineyard/sphinx/#{app_name}/thinking_sphinx.log 2>> /var/log/engineyard/sphinx/#{app_name}/thinking_sphinx_error.log"
           user node[:owner_name]
         end
       end
@@ -227,10 +225,10 @@ else
         })
       end
 
-      gem_package "bundler" do 
-        source "http://rubygems.org" 
-        action :install 
-        version "1.0.21" 
+      gem_package "bundler" do
+        source "http://rubygems.org"
+        action :install
+        version "1.0.21"
       end
 
 
@@ -263,12 +261,12 @@ else
       if cron_interval
         cron "sphinx index" do
           action  :create
-          minute  "*/#{cron_interval}"
-          hour    '*'
+          minute  "0"
+          hour    "*/#{cron_interval}"
           day     '*'
           month   '*'
           weekday '*'
-          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} bundle exec rake #{flavor}:index"
+          command "cd /data/#{app_name}/current && RAILS_ENV=#{node[:environment][:framework_env]} bundle exec rake #{flavor}:index --trace >> /var/log/engineyard/sphinx/#{app_name}/thinking_sphinx.log 2>> /var/log/engineyard/sphinx/#{app_name}/thinking_sphinx_error.log"
           user node[:owner_name]
         end
       end

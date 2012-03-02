@@ -29,6 +29,9 @@ else
   fi
 fi
 
+rvm rubygems current
+rvm gemset use ey
+
 #
 # If you use an RVM gemset file to install a list of gems (*.gems), you can have
 # it be automatically loaded. Uncomment the following and adjust the filename if

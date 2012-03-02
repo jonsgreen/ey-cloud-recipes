@@ -1,0 +1,30 @@
+###############################################################################
+
+export RAILS_ENV="production"
+export RACK_ENV="production"
+
+usage() {
+  echo "Usage: $0 {start, stop}"
+  exit 1
+}
+
+if [ -d /data/$1/current ]; then
+
+  cd /data/$1/current
+
+  # handle the second param, don't start if already existing
+  case "$2" in
+    start)
+      echo "Starting workling"
+      script/workling_client start
+      ;;
+    stop)
+      echo "Stopping workling"
+      script/workling_client stop
+      ;;
+      esac
+else
+  echo "/data/$1/current doesn't exist."
+  usage
+fi
+
